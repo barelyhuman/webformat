@@ -1,5 +1,5 @@
 import Head from 'next/head';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import {
   Page,
   Row,
@@ -12,16 +12,22 @@ import {
 import prettier from 'prettier/standalone';
 import parserBabel from 'prettier/esm/parser-babel.mjs';
 import parserMarkdown from 'prettier/esm/parser-markdown.mjs';
+import axios from 'axios';
 
 const languages = [
   ['js', 'Javascript'],
   ['json', 'JSON'],
   ['md', 'Markdown'],
+  ['go', 'Go Lang'],
 ];
 
 export default function Home() {
   const [value, setValue] = useState('');
   const [language, setLanguage] = useState('js');
+  const [formatted, setFormatted] = useState('');
+  const [loading, setLoading] = useState(false);
+
+  const debouncedFormatter = useRef();
 
   useEffect(() => {
     if (!value || value == '{}') {
@@ -34,6 +40,24 @@ export default function Home() {
     }
   }, [language]);
 
+  useEffect(() => {
+    const runFormatters = async () => {
+      setLoading(true);
+      const _formatted = await getFormatted();
+      setFormatted(_formatted);
+      setLoading(false);
+    };
+
+    if (debouncedFormatter && debouncedFormatter.current) {
+      clearInterval(debouncedFormatter.current);
+    }
+
+    debouncedFormatter.current = setTimeout(() => {
+      runFormatters();
+    }, 250);
+
+  }, [value]);
+
   const normalize = (stringToConv) => {
     return stringToConv
       .replace(/Object/g, '{}')
@@ -41,7 +65,7 @@ export default function Home() {
       .replace(/\'/g, '"');
   };
 
-  const getFormatted = () => {
+  const getFormatted = async () => {
     try {
       switch (language) {
         case 'md': {
@@ -72,6 +96,9 @@ export default function Home() {
           const json = JSON.parse(`${normalizedString}`);
           return JSON.stringify(json, null, 2);
         }
+        case 'go': {
+          return await requestGoFormat();
+        }
       }
     } catch (err) {
       return `${err}`;
@@ -80,6 +107,15 @@ export default function Home() {
 
   const onLanguageChange = (lang) => {
     setLanguage(lang);
+  };
+
+  const requestGoFormat = async () => {
+    try {
+      const response = await axios.get(`/api/go/format?code=${btoa(value)}`);
+      return response.data;
+    } catch (err) {
+      console.error(err);
+    }
   };
 
   return (
@@ -109,7 +145,12 @@ export default function Home() {
             onChange={(e) => setValue(e.target.value)}
           ></Textarea>
           <Spacer x={1} />
-          <Snippet type="warning" symbol="" text={getFormatted()} width="50%" />
+          <Snippet
+            type="warning"
+            symbol=""
+            text={loading ? 'Loading...' : formatted}
+            width="50%"
+          />
         </Row>
       </Page.Content>
     </Page>
