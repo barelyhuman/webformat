@@ -10,6 +10,7 @@
   "dependencies": {
     "@babel/parser": "^7.12.11",
     "@geist-ui/react": "^2.1.0-canary.2",
+    "axios": "^0.21.1",
     "next": "10.0.5",
     "prettier": "^2.2.1",
     "react": "17.0.1",
