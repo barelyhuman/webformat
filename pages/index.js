@@ -11,10 +11,12 @@ import {
 } from '@geist-ui/react';
 import prettier from 'prettier/standalone';
 import parserBabel from 'prettier/esm/parser-babel.mjs';
+import parserMarkdown from 'prettier/esm/parser-markdown.mjs';
 
 const languages = [
   ['js', 'Javascript'],
   ['json', 'JSON'],
+  ['md', 'Markdown'],
 ];
 
 export default function Home() {
@@ -42,6 +44,16 @@ export default function Home() {
   const getFormatted = () => {
     try {
       switch (language) {
+        case 'md': {
+          if (!value) {
+            return '';
+          }
+          const formatted = prettier.format(value, {
+            parser: 'markdown',
+            plugins: [parserMarkdown],
+          });
+          return formatted;
+        }
         case 'js': {
           if (!value) {
             return '';
